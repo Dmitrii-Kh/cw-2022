@@ -29,6 +29,8 @@
     "@nestjs/typeorm": "^8.0.3",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.0.0",
+    "fabric-ca-client": "^2.2.11",
+    "fabric-network": "^2.2.11",
     "pg": "^8.7.3",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
