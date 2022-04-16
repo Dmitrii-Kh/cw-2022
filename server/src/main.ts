@@ -8,10 +8,14 @@ async function bootstrap() {
     const port = process.env.PORT;
     const logger = new Logger('bootstrap');
     const app = await NestFactory.create(AppModule);
-    app.setGlobalPrefix('api');
+    app.setGlobalPrefix('api/v1');
     app.use(cookieParser());
 
     //todo cors config
+    // app.enableCors({
+    //     origin: process.env.BASE_URL,
+    //     credentials: true,
+    // });
 
     const config = new DocumentBuilder()
         .addBearerAuth()
@@ -23,7 +27,7 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('swagger', app, document);
 
-    await app.listen(3000);
+    await app.listen(port);
     logger.log(`Application listening on port ${port}`);
 }
 
