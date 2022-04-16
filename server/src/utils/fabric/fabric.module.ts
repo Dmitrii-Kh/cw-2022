@@ -1,10 +1,12 @@
-import { Module } from '@nestjs/common';
-import {CaService} from "./ca.service";
-import {AppService} from "./app.service";
+import {Global, Module} from '@nestjs/common';
 import { FabricWalletService } from './fabric-wallet.service';
+import { CaModule } from './ca/ca.module';
+import { AppModule } from './app/app.module';
 
+@Global()
 @Module({
-    providers: [CaService, AppService, FabricWalletService],
-    exports: [FabricWalletService]
+    imports: [CaModule, AppModule],
+    providers: [FabricWalletService],
+    exports: [FabricWalletService],
 })
 export class FabricModule {}
