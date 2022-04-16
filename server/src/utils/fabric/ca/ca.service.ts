@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import {Injectable, Logger} from '@nestjs/common';
 
 @Injectable()
 export class CaService {
     private ADMIN_USER_ID = 'admin';
     private ADMIN_USER_PASSWORD = 'adminpw';
+    private logger = new Logger('CAService');
 
-    buildCAClient = (FabricCAServices, ccp, caHostName) => {
+    buildCAClient(FabricCAServices, ccp, caHostName) {
         // Create a new CA client for interacting with the CA.
         const caInfo = ccp.certificateAuthorities[caHostName]; //lookup CA details from config
         const caTLSCACerts = caInfo.tlsCACerts.pem;
@@ -15,7 +16,7 @@ export class CaService {
         return caClient;
     };
 
-    enrollAdmin = async (caClient, wallet, orgMspId) => {
+    async enrollAdmin(caClient, wallet, orgMspId) {
         try {
             // Check to see if we've already enrolled the admin user.
             const identity = await wallet.get(this.ADMIN_USER_ID);
@@ -34,13 +35,13 @@ export class CaService {
                 type: 'X.509',
             };
             await wallet.put(this.ADMIN_USER_ID, x509Identity);
-            console.log('Successfully enrolled admin user and imported it into the wallet');
+            this.logger.verbose('Successfully enrolled admin user and imported it into the wallet');
         } catch (error) {
-            console.error(`Failed to enroll admin user : ${error}`);
+            this.logger.error(`Failed to enroll admin user : ${error}`);
         }
     };
 
-    registerAndEnrollUser = async (caClient, wallet, orgMspId, userId, affiliation) => {
+    async registerAndEnrollUser(caClient, wallet, orgMspId, userId, affiliation) {
         try {
             // Check to see if we've already enrolled the user
             const userIdentity = await wallet.get(userId);
