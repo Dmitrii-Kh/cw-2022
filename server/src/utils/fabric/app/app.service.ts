@@ -5,9 +5,9 @@ import * as path from 'path'
 @Injectable()
 export class AppService {
 
-    buildCCPOrg1 = () => {
+    buildCCPOrg1() {
         // load the common connection configuration file
-        const ccpPath = path.resolve(__dirname, '..', '..', 'test-network', 'organizations', 'peerOrganizations', 'org1.example.com', 'connection-org1.json');
+        const ccpPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'fabric-samples', 'test-network', 'organizations', 'peerOrganizations', 'org1.example.com', 'connection-org1.json');
         const fileExists = fs.existsSync(ccpPath);
         if (!fileExists) {
             throw new Error(`no such file or directory: ${ccpPath}`);
@@ -21,7 +21,7 @@ export class AppService {
         return ccp;
     };
 
-    buildCCPOrg2 = () => {
+    buildCCPOrg2() {
         // load the common connection configuration file
         const ccpPath = path.resolve(__dirname, '..', '..', 'test-network',
             'organizations', 'peerOrganizations', 'org2.example.com', 'connection-org2.json');
@@ -38,7 +38,7 @@ export class AppService {
         return ccp;
     };
 
-    buildWallet = async (Wallets, walletPath = 'http://admin:adminpw@127.0.0.1:5984') => {
+    async buildWallet(Wallets, walletPath = 'http://admin:adminpw@127.0.0.1:5984') {
         // Create a new  wallet : Note that wallet is for managing identities.
         let wallet;
         if (walletPath) {
@@ -53,7 +53,7 @@ export class AppService {
         return wallet;
     };
 
-    prettyJSONString = (inputString) => {
+    prettyJSONString(inputString) {
         if (inputString) {
             return JSON.stringify(JSON.parse(inputString), null, 2);
         }
