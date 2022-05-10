@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { EacService } from './eac.service';
+import { EacMarketService } from './eac-market.service';
 import { CreateEacDto } from './dto/create-eac.dto';
 import { UpdateEacDto } from './dto/update-eac.dto';
 
-@Controller('eac')
-export class EacController {
-  constructor(private readonly eacService: EacService) {}
+@Controller('eac-market')
+export class EacMarketController {
+  constructor(private readonly eacService: EacMarketService) {}
 
   @Post()
   create(@Body() createEacDto: CreateEacDto) {
