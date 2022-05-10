@@ -1,34 +1,42 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ValidationPipe, Logger, Req } from '@nestjs/common';
 import { OrganisationService } from './organisation.service';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
-import { UpdateOrganisationDto } from './dto/update-organisation.dto';
+import { Organisation } from './entities/organisation.entity';
+import { Request } from 'express';
 
 @Controller('organisation')
 export class OrganisationController {
-  constructor(private readonly organisationService: OrganisationService) {}
+    private logger = new Logger('OrganisationController');
 
-  @Post()
-  create(@Body() createOrganisationDto: CreateOrganisationDto) {
-    return this.organisationService.create(createOrganisationDto);
-  }
+    constructor(private readonly organisationService: OrganisationService) {}
 
-  @Get()
-  findAll() {
-    return this.organisationService.findAll();
-  }
+    @Get()
+    getAllOrganisations(@Req() req: Request): Promise<Organisation[]> {
+        return this.organisationService.getAllOrganisations(req.body.userId);
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.organisationService.findOne(+id);
-  }
+    @Get(':id')
+    getOrganisationById(
+        @Param('id') registryNumber: string,
+        @Req() req: Request,
+    ): Promise<Organisation> { //todo decorator
+        this.logger.verbose(`Retrieving Organisation ${registryNumber}`);
+        return this.organisationService.getOrganisationById(registryNumber, req.body.userId);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrganisationDto: UpdateOrganisationDto) {
-    return this.organisationService.update(+id, updateOrganisationDto);
-  }
+    @Post()
+    createOrganisation(
+        @Body(ValidationPipe) createOrganisationDto: CreateOrganisationDto,
+        @Req() req: Request,
+    ): Promise<Organisation> {
+        this.logger.verbose(
+            `Creating new Organisation. Data : ${JSON.stringify(createOrganisationDto)}`,
+        );
+        return this.organisationService.createOrganisation(createOrganisationDto, req.body.userId);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.organisationService.remove(+id);
-  }
+    @Delete(':id')
+    deleteOrganisation(@Param('id') registryNumber: string, @Req() req: Request): Promise<void> {
+        return this.organisationService.deleteOrganisation(registryNumber, req.body.userId);
+    }
 }
