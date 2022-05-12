@@ -4,6 +4,8 @@ import {UpdateUserDto} from './dto/update-user.dto';
 import {CaService} from "../utils/fabric/ca/ca.service";
 import {UserUtils} from "../utils/user/user.service";
 import {FabricWalletService} from "../utils/fabric/fabric-wallet.service";
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserRepository } from './user.repository';
 
 @Injectable()
 export class UserService {
@@ -11,7 +13,9 @@ export class UserService {
     constructor(
         private ca: CaService,
         private fsw: FabricWalletService,
-        private userUtils: UserUtils
+        private userUtils: UserUtils,
+        @InjectRepository(UserRepository)
+        private userRepository: UserRepository
     ) {
 
     }
