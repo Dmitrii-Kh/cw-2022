@@ -1,26 +1,102 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { CreateMeasurementDto } from './dto/create-measurement.dto';
 import { UpdateMeasurementDto } from './dto/update-measurement.dto';
+import { MeasurementRepository } from './measurement.repository';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Measurement } from './entities/measurement.entity';
+import { Organisation } from '../organisation/entities/organisation.entity';
+import { Station } from '../station/entities/station.entity';
 
 @Injectable()
 export class MeasurementsService {
-  create(createMeasurementDto: CreateMeasurementDto) {
-    return 'This action adds a new measurement';
-  }
+    private logger = new Logger('MeasurementService');
 
-  findAll() {
-    return `This action returns all measurements`;
-  }
+    constructor(
+        @InjectRepository(MeasurementRepository)
+        private measurementRepository: MeasurementRepository,
+    ) {
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} measurement`;
-  }
+    public async create(measurementDto: Measurement): Promise<Measurement> {
+        let measurement;
+        try {
+            measurement = await this.measurementRepository
+                .createQueryBuilder()
+                .insert()
+                .into(Measurement)
+                .values({
+                    ...measurementDto,
+                })
+                .execute();
+        } catch (e) {
+            this.logger.error(`Failed to create new measurement: `, e.stack);
+            throw new InternalServerErrorException();
+        }
+        return measurement.raw;
+    }
 
-  update(id: number, updateMeasurementDto: UpdateMeasurementDto) {
-    return `This action updates a #${id} measurement`;
-  }
+    public async findAll(): Promise<Measurement[]> {
+        const query = this.measurementRepository.createQueryBuilder('measurement');
+        try {
+            return await query.getMany();
+        } catch (error) {
+            this.logger.error(`Failed to get all measurements: `, error.stack);
+            throw new InternalServerErrorException();
+        }
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} measurement`;
-  }
+    public async getMeasurementsByOrgAndStation(
+        organisationRegistryNumber: string,
+        stationName: string,
+        organisations: Organisation[],
+        stations: Station[],
+    ): Promise<Measurement> {
+        const query = this.measurementRepository.createQueryBuilder('measurement');
+        let found;
+        try {
+            query.where(
+                ' measurement.stationName = :stationName AND' +
+                ' measurement.stationOrganisationRegistryNumber = :organisationRegistryNumber AND' +
+                ' measurement.stationName IN (:...userStationNames) AND' +
+                ' measurement.stationOrganisationRegistryNumber IN (:...userOrganisationRegistryNumbers) AND' +
+                ' measurement.minted = false',
+                {
+                    stationName: stationName,
+                    organisationRegistryNumber: organisationRegistryNumber,
+                    userStationNames: stations.reduce((acc, curr) => {
+                        return [...acc, curr.name];
+                    }, []),
+                    userOrganisationRegistryNumbers: organisations.reduce((acc, curr) => {
+                        return [...acc, curr.registryNumber];
+                    }, []),
+                },
+            );
+            found = await query.getMany();
+        } catch (error) {
+            this.logger.error(
+                `Failed to get measurements from station ${stationName}, org ${organisationRegistryNumber} `,
+                error.stack,
+            );
+            throw new InternalServerErrorException();
+        }
+        if (!found) {
+            throw new NotFoundException(
+                `Measurements from station ${stationName}, org ${organisationRegistryNumber} not found`,
+            );
+        }
+        return found;
+    }
+
+    public async update(id: number, measurement: Measurement) {
+        try {
+            await this.measurementRepository
+                .createQueryBuilder()
+                .update(Measurement)
+                .set(measurement)
+                .where('id = :id', { id })
+                .execute();
+        } catch (e) {
+            this.logger.error(`Failed to update measurement ${id}`, e.stack);
+        }
+    }
 }
