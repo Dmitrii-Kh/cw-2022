@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { FiatCurrencyEnum } from '../fiat-currency.enum';
 
 export class CreateWalletDto {
     @IsNumber()
@@ -7,7 +8,7 @@ export class CreateWalletDto {
 
     @IsString()
     @IsNotEmpty({message: 'Currency name is required'})
-    currency: string;
+    currency: FiatCurrencyEnum;
 
     @IsNumber()
     @IsNotEmpty({message: 'Balance is required'})
