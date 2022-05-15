@@ -39,6 +39,12 @@ cd test-network
 ./network.sh deployCC -c channel1 -ccn token_utxo_extended -ccp ../contracts/token-utxo-extended/chaincode-go/ -ccl go
 ```
 
+To update CC 
+
+```
+./network.sh deployCC -c channel1 -ccn token_utxo_extended -ccp ../contracts/token-utxo-extended/chaincode-go/ -ccl go -ccs 2 -ccv 2.0
+```
+
 ## Run server
 
 After successfully deploying the network, you can start the server in javascript-server:
