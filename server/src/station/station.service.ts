@@ -11,6 +11,7 @@ import { Station } from './entities/station.entity';
 import { StationRepository } from './station.repository';
 import { Organisation } from '../organisation/entities/organisation.entity';
 import axios from 'axios';
+import { OrganisationService } from '../organisation/organisation.service';
 
 @Injectable()
 export class StationService {
@@ -19,21 +20,18 @@ export class StationService {
     constructor(
         @InjectRepository(StationRepository)
         private stationRepository: StationRepository,
+        private organisationService: OrganisationService,
     ) {
     }
 
     public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
-        let found;
-        const query = this.stationRepository.createQueryBuilder('station');
+        let found = [];
         try {
-            query.where('station.organisationRegistryNumber IN (:organisationRegistryNumbers)', {
-                organisationRegistryNumbers: organisations
-                    .reduce((acc, curr) => {
-                        return [...acc, curr.registryNumber];
-                    }, [])
-                    .toString(),
-            });
-            found = await query.getMany();
+            for (const org of organisations) {
+                for (const station of await org.stations) {
+                    found.push(station);
+                }
+            }
         } catch (error) {
             this.logger.error(`Failed to get all stations: `, error.stack);
             throw new InternalServerErrorException();
@@ -45,26 +43,14 @@ export class StationService {
     }
 
     public async getStationById(
-        organisation: string,
+        organisationRegistryNumber: number,
         name: string,
-        organisations: Organisation[],
+        ownerId: number
     ): Promise<Station> {
         let found;
-        const query = this.stationRepository.createQueryBuilder('station');
         try {
-            query.where(
-                ' station.name = :name AND' +
-                ' station.organisationRegistryNumber = :organisation AND' +
-                ' station.organisationRegistryNumber IN (:...organisationRegistryNumbers)',
-                {
-                    name,
-                    organisation,
-                    organisationRegistryNumbers: organisations.reduce((acc, curr) => {
-                        return [...acc, curr.registryNumber];
-                    }, []),
-                },
-            );
-            found = await query.getOne();
+            const org = await this.organisationService.getOrganisationById(organisationRegistryNumber, ownerId);
+            found = (await org.stations).find((station) => station.name === name);
         } catch (error) {
             this.logger.error(`Failed to get station ${name}: `, error.stack);
             throw new InternalServerErrorException();
@@ -75,27 +61,27 @@ export class StationService {
         return found;
     }
 
-    public async getStation(organisation: string, name: string): Promise<Station> {
-        const query = this.stationRepository.createQueryBuilder('station');
-        let found;
-        try {
-            query.where(
-                'station.name = :name AND' + ' station.organisationRegistryNumber = :organisation',
-                {
-                    name: name,
-                    organisation: organisation,
-                },
-            );
-            found = await query.getOne();
-        } catch (error) {
-            this.logger.error(`Failed to get station ${name}: `, error.stack);
-            throw new InternalServerErrorException();
-        }
-        if (!found) {
-            throw new NotFoundException(`Station with id: ${name} not found`);
-        }
-        return found;
-    }
+    // public async getStation(organisation: string, name: string): Promise<Station> {
+    //     const query = this.stationRepository.createQueryBuilder('station');
+    //     let found;
+    //     try {
+    //         query.where(
+    //             'station.name = :name AND' + ' station.organisationRegistryNumber = :organisation',
+    //             {
+    //                 name: name,
+    //                 organisation: organisation,
+    //             },
+    //         );
+    //         found = await query.getOne();
+    //     } catch (error) {
+    //         this.logger.error(`Failed to get station ${name}: `, error.stack);
+    //         throw new InternalServerErrorException();
+    //     }
+    //     if (!found) {
+    //         throw new NotFoundException(`Station with id: ${name} not found`);
+    //     }
+    //     return found;
+    // }
 
     public async createStation(
         stationInput: CreateStationDto,
@@ -104,8 +90,7 @@ export class StationService {
         let station = this.stationRepository.create(stationInput);
         try {
             station.organisation = Promise.resolve(organisation);
-            await station.save();
-
+            //todo check if exists in CB
             const response = await axios.post(
                 `${process.env.BROKER_HOST}:${process.env.BROKER_PORT}/v2/entities?options=keyValues`,
                 {
@@ -118,6 +103,7 @@ export class StationService {
                 { headers: { 'Content-Type': 'application/json' } },
             );
             this.logger.verbose('Create Station in Context Broker status: ', response.status);
+            await station.save();
         } catch (error) {
             this.logger.error(`Failed to create new station: `, error.stack);
             if (error.code === '23505' || error.response.data.error === 'Unprocessable') {
@@ -130,9 +116,8 @@ export class StationService {
     }
 
     public async deleteStation(
-        organisation: string,
         name: string,
-        organisations: Organisation[],
+        organisation: Organisation,
     ): Promise<void> {
         try {
             await this.stationRepository
@@ -140,16 +125,10 @@ export class StationService {
                 .delete()
                 .where(
                     ' name = :name AND' +
-                    ' organisationRegistryNumber = :organisation AND' +
-                    ' organisationRegistryNumber IN (:organisationRegistryNumbers)',
+                    ' organisationRegistryNumber = :organisationRegistryNumber',
                     {
                         name,
-                        organisation,
-                        organisationRegistryNumbers: organisations
-                            .reduce((acc, curr) => {
-                                return [...acc, curr.registryNumber];
-                            }, [])
-                            .toString(),
+                        organisationRegistryNumber: organisation.registryNumber,
                     },
                 )
                 .execute();

@@ -14,25 +14,24 @@ import { EnergyType } from '../station-energy-type.enum';
 import { Measurement } from '../../measurements/entities/measurement.entity';
 
 @Entity()
-@Unique(['name', 'organisationRegistryNumber'])
 export class Station extends BaseEntity {
     @PrimaryColumn()
     name: string;
 
     @PrimaryColumn()
-    organisationRegistryNumber: string;
+    organisationRegistryNumber: number;
 
     @Column()
     @ApiProperty({ example: EnergyType.SOLAR })
     stationEnergyType: EnergyType;
 
     @Column()
-    @ApiProperty({ example: '1mW/h' })
-    plantPerformance: string;
+    @ApiProperty({ example: '1' }) //mW/h
+    plantPerformance: number;
 
     @Column()
     @ApiProperty({ example: new Date().toISOString() })
-    exploitationStart: Date;
+    commissioningDate: Date;
 
     @Column()
     @ApiProperty({ example: new Date().toISOString() })
