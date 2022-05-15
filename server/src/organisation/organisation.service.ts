@@ -20,11 +20,11 @@ export class OrganisationService {
     ) {
     }
 
-    public async getAllOrganisations(userId: string): Promise<Organisation[]> {
+    public async getAllOrganisations(userId: number): Promise<Organisation[]> {
         const query = this.organisationRepository.createQueryBuilder('organisation');
         let found;
         try {
-            query.where('organisation.userId = :userId', { userId: userId });
+            query.where('organisation.ownerId = :userId', { userId: userId });
             found = await query.getMany();
         } catch (error) {
             this.logger.error(`Failed to get all stations: `, error.stack);
@@ -37,13 +37,13 @@ export class OrganisationService {
     }
 
     public async getOrganisationById(
-        registryNumber: string,
-        userId: string,
+        registryNumber: number,
+        userId: number,
     ): Promise<Organisation> {
         let found;
         try {
             found = await this.organisationRepository.findOne({
-                where: { registryNumber: registryNumber, userId: userId },
+                where: { registryNumber: registryNumber, ownerId: userId },
             });
         } catch (error) {
             this.logger.error(`Failed to get organisation ${registryNumber}: `, error.stack);
@@ -57,29 +57,29 @@ export class OrganisationService {
 
     public async createOrganisation(
         organisationInput: CreateOrganisationDto,
-        userId: string,
+        userId: number,
     ): Promise<Organisation> {
-        let found = await this.organisationRepository.findOne({
-            where: { registryNumber: organisationInput.registryNumber },
-        });
-        if (found) throw new UnprocessableEntityException('Organisation already exists');
-
-        let organisation = this.organisationRepository.create(organisationInput);
         try {
-            organisation.userId = userId;
+            let found = await this.organisationRepository.findOne({
+                where: { registryNumber: organisationInput.registryNumber },
+            });
+            if (found) throw new UnprocessableEntityException('Organisation already exists');
+            const organisation = this.organisationRepository.create(organisationInput);
+            organisation.ownerId = userId;
             await organisation.save();
+            return organisation;
         } catch (error) {
+            this.logger.error(`Failed to create organisation ${organisationInput.registryNumber}`, error);
             throw new InternalServerErrorException('Organisation creation failed');
         }
-        return organisation;
     }
 
-    public async deleteOrganisation(registryNumber: string, userId: string): Promise<void> {
+    public async deleteOrganisation(registryNumber: number, userId: number): Promise<void> {
         try {
             await this.organisationRepository
                 .createQueryBuilder('organisation')
                 .delete()
-                .where('registryNumber = :registryNumber AND userId = :userId', {
+                .where('registryNumber = :registryNumber AND ownerId = :userId', {
                     registryNumber,
                     userId,
                 })

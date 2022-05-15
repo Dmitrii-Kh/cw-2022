@@ -12,16 +12,16 @@ export class OrganisationController {
 
     @Get()
     getAllOrganisations(@Req() req: Request): Promise<Organisation[]> {
-        return this.organisationService.getAllOrganisations(req.body.userId);
+        return this.organisationService.getAllOrganisations(req.body.ownerId);
     }
 
     @Get(':id')
     getOrganisationById(
-        @Param('id') registryNumber: string,
+        @Param('id') registryNumber: number,
         @Req() req: Request,
     ): Promise<Organisation> { //todo decorator
         this.logger.verbose(`Retrieving Organisation ${registryNumber}`);
-        return this.organisationService.getOrganisationById(registryNumber, req.body.userId);
+        return this.organisationService.getOrganisationById(registryNumber, req.body.ownerId);
     }
 
     @Post()
@@ -32,11 +32,11 @@ export class OrganisationController {
         this.logger.verbose(
             `Creating new Organisation. Data : ${JSON.stringify(createOrganisationDto)}`,
         );
-        return this.organisationService.createOrganisation(createOrganisationDto, req.body.userId);
+        return this.organisationService.createOrganisation(createOrganisationDto, req.body.ownerId);
     }
 
     @Delete(':id')
-    deleteOrganisation(@Param('id') registryNumber: string, @Req() req: Request): Promise<void> {
-        return this.organisationService.deleteOrganisation(registryNumber, req.body.userId);
+    deleteOrganisation(@Param('id') registryNumber: number, @Req() req: Request): Promise<void> {
+        return this.organisationService.deleteOrganisation(registryNumber, req.body.ownerId);
     }
 }

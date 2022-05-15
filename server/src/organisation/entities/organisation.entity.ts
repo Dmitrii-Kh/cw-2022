@@ -4,22 +4,22 @@ import { BaseEntity, Column, Entity, JoinTable, OneToMany, PrimaryColumn } from 
 @Entity()
 export class Organisation extends BaseEntity {
     @PrimaryColumn()
-    registryNumber: string;
+    registryNumber: number;
 
     @Column()
     name: string;
 
     @Column()
-    userId: string;
+    ownerId: number;
 
     @Column()
-    signatoryAddress: string;
+    businessType: string;
 
     @Column()
-    organizationAddress: string;
+    organisationAddress: string;
 
     @Column()
-    signatoryEmail: string;
+    organisationEmail: string;
 
     @OneToMany((type) => Station, (station) => station.organisation, {
         eager: false,
