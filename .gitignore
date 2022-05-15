@@ -190,3 +190,8 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 # End of https://www.toptal.com/developers/gitignore/api/goland
+/contracts/token-utxo-extended/chaincode-go/vendor/
+/contracts/token-utxo-extended/chaincode-go/vendor/google.golang.org/
+/contracts/token-utxo-extended/chaincode-go/vendor/gopkg.in/
+/contracts/token-utxo-extended/chaincode-go/vendor/github.com/
+/contracts/token-utxo-extended/chaincode-go/vendor/golang.org/
