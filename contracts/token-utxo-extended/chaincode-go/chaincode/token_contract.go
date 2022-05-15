@@ -16,15 +16,14 @@ type SmartContract struct {
 type EAC struct {
     ProductionStartDate  string  `json:"prod_start_date"`
     ProductionEndDate  string  `json:"prod_end_date"`
-    ProducedEnergy float64 `json:"produced_energy"`
-    PlantUID string `json:"plant_uid"`
-    PlantName string `json:"plant_name"`
-    PlantLocation string `json:"plant_location"`
-    PlantType string `json:"plant_type"`
-    IssueDate string `json:"issue_date"`
-    IssuingCountry string `json:"issuing_country"`
+    GeneratedEnergy float64 `json:"generated_energy"`
+    StationID string `json:"station_uid"`
+    StationLocation string `json:"station_location"`
+    StationEnergyType string `json:"station_energy_type"`
+    ManufacturerCountryId float64 `json:"manufacturer_country_id"`
+    ManufactureDate string `json:"manufacture_date"`
     CommissioningDate string `json:"commissioning_date"`
-    PlantPerformance string `json:"plant_performance"`
+    PlantPerformance float64 `json:"plant_performance"`
 }
 
 // UTXO represents an unspent transaction output
