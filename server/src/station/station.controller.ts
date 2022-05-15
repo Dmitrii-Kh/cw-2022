@@ -1,34 +1,65 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Logger, ValidationPipe, Req } from '@nestjs/common';
 import { StationService } from './station.service';
 import { CreateStationDto } from './dto/create-station.dto';
-import { UpdateStationDto } from './dto/update-station.dto';
+import { OrganisationService } from '../organisation/organisation.service';
+import { Station } from './entities/station.entity';
 
 @Controller('station')
 export class StationController {
-  constructor(private readonly stationService: StationService) {}
+    private logger = new Logger('StationController');
 
-  @Post()
-  create(@Body() createStationDto: CreateStationDto) {
-    return this.stationService.create(createStationDto);
-  }
+    constructor(
+        private stationService: StationService,
+        private organisationService: OrganisationService,
+    ) {
+    }
 
-  @Get()
-  findAll() {
-    return this.stationService.findAll();
-  }
+    @Get()
+    async getAllStations(@Req() req): Promise<Station[]> {
+        this.logger.verbose(`Retrieving all Stations`);
+        //todo auth decorator
+        let userOrganisations = await this.organisationService.getAllOrganisations(req.body.ownerId);
+        let stations = [];
+        for (const org of userOrganisations) {
+            for (const station of await org.stations) {
+                stations.push(station);
+            }
+        }
+        return stations;
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.stationService.findOne(+id);
-  }
+    @Get('/:organisation/:name')
+    async getStationById(
+        @Param('organisation') organisationRegistryNumber: number,
+        @Param('name') name: string,
+        @Req() req,
+    ): Promise<Station> {
+        this.logger.verbose(`Retrieving Station by name ${name}`);
+        return this.stationService.getStationById(organisationRegistryNumber, name, req.body.ownerId);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStationDto: UpdateStationDto) {
-    return this.stationService.update(+id, updateStationDto);
-  }
+    @Post()
+    // @ApiBearerAuth('access-token')
+    async createStation(
+        @Body(ValidationPipe) createStationDto: CreateStationDto,
+        @Req() req,
+    ): Promise<Station> {
+        this.logger.verbose(`Creating new Station. Data : ${JSON.stringify(createStationDto)}`);
+        const org = await this.organisationService.getOrganisationById(
+            createStationDto.organisationRegistryNumber,
+            req.body.ownerId,
+        );
+        return this.stationService.createStation(createStationDto, org);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.stationService.remove(+id);
-  }
+    @Delete('/:organisation/:name')
+    async deleteStation(
+        @Param('organisation') organisationRegistryNumber: number,
+        @Param('name') name: string,
+        @Req() req,
+    ): Promise<void> {
+        this.logger.verbose(`Deleting Station by name   + ${name}`);
+        const org = await this.organisationService.getOrganisationById(organisationRegistryNumber, req.body.ownerId);
+        return this.stationService.deleteStation(name, org);
+    }
 }

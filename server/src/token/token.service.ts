@@ -1,15 +1,19 @@
-import {Injectable} from '@nestjs/common';
-import {CreateTokenDto} from './dto/create-token.dto';
-import {FabricWalletService} from "../utils/fabric/fabric-wallet.service";
-import {bufferToString, bufferToObject} from '../utils/bufferEncode';
-import {TokenUtils} from '../utils/token/token.service'
+import { Injectable } from '@nestjs/common';
+import { CreateTokenDto } from './dto/create-token.dto';
+import { FabricWalletService } from '../utils/fabric/fabric-wallet.service';
+import { bufferToString, bufferToObject } from '../utils/bufferEncode';
+import { TokenUtils } from '../utils/token/token.service';
+import { StationService } from '../station/station.service';
+import { MeasurementsService } from '../measurements/measurements.service';
 
 @Injectable()
 export class TokenService {
 
     constructor(
         private fws: FabricWalletService,
-        private tokenUtils: TokenUtils
+        private tokenUtils: TokenUtils,
+        private stationService: StationService,
+        private measurementsService: MeasurementsService,
     ) {
     }
 
@@ -19,41 +23,69 @@ export class TokenService {
 
     async create(createTokenDto: CreateTokenDto, req) {
         try {
-            //todo DTO
-            // if (!req.body.hasOwnProperty('username') || !req.body.hasOwnProperty('amount') || !req.body.hasOwnProperty('EAC')) {
-            //   throw {
-            //     status: 404,
-            //     message: 'Request must contain username, amount fields and EAC fields!'
-            //   };
-            // }
+            const { userId, stationId } = createTokenDto;
+            const [organisation, name] = stationId.split('.');
+            const station = await this.stationService.getStationById(+organisation, name, userId);
+            const {
+                countryId,
+                regionId,
+                stationEnergyType,
+                manufacturerCountryId,
+                manufactureDate,
+                commissioningDate,
+                plantPerformance,
+            } = station;
+            const measurementsArray = (await station.measurements).filter(m => m.minted === false);
+            if (measurementsArray.length === 0) {
+                throw {
+                    status: 404,
+                    message: 'No measurements yet',
+                };
+            }
+            const generatedEnergy = measurementsArray
+                .reduce((acc, curr) => acc + curr.generatedEnergy, 0);
+            if (this.numberOfDecimalPoints(generatedEnergy) > 0) {
+                throw {
+                    status: 404,
+                    message: 'generatedEnergy must be an integer',
+                };
+            }
+            const EAC = {
+                prod_start_date: measurementsArray[0].startDate,
+                prod_end_date: measurementsArray[measurementsArray.length - 1].endDate,
+                generated_energy: generatedEnergy,
+                station_uid: stationId,
+                station_location: countryId + '.' + regionId,
+                station_energy_type: stationEnergyType,
+                manufacturer_country_id: manufacturerCountryId,
+                manufacture_date: manufactureDate,
+                commissioning_date: commissioningDate,
+                plant_performance: plantPerformance,
+            };
 
-            //todo DTO type
-            // if ( this.numberOfDecimalPoints(req.body.amount) > 0 ) {
-            //   throw {
-            //     status: 404,
-            //     message: 'Request amount must be integer'
-            //   };
-            // }
-
-            const totalAmount = createTokenDto.amount * 10 / 10000;
+            const totalAmount = generatedEnergy * 10 / 10000;
             await this.fws.getGateway().connect(this.fws.getCCP(), {
                 wallet: await this.fws.getWallet(),
-                identity: createTokenDto.username,
-                discovery: {enabled: true, asLocalhost: true}
+                identity: userId + '',
+                discovery: { enabled: true, asLocalhost: true },
             });
             const network = await this.fws.getGateway().getNetwork(process.env.CHANNEL_NAME);
             const contract = network.getContract(process.env.CHAINCODE_NAME);
-            await contract.submitTransaction("Mint", String(totalAmount),
-                JSON.stringify(createTokenDto.EAC));
+            await contract.submitTransaction('Mint', String(totalAmount),
+                JSON.stringify(EAC));
+            for (const m of measurementsArray) {
+                // @ts-ignore
+                await this.measurementsService.update(m.id, { ...m, minted: true });
+            }
             return {
                 status: 200,
-                message: 'Token(s) created successfully'
-            }
+                message: 'Token(s) created successfully',
+            };
         } catch (e) {
             return {
                 status: e.status || 404,
-                message: "Request error: " + e.message,
-            }
+                message: 'Request error: ' + e.message,
+            };
         }
     }
 
@@ -73,43 +105,43 @@ export class TokenService {
         try {
             await this.fws.getGateway().connect(this.fws.getCCP(), {
                 wallet: await this.fws.getWallet(),
-                identity: req.query.username,
-                discovery: {enabled: true, asLocalhost: true}
+                identity: req.query.userId,
+                discovery: { enabled: true, asLocalhost: true },
             });
             const network = await this.fws.getGateway().getNetwork(process.env.CHANNEL_NAME);
             const contract = network.getContract(process.env.CHAINCODE_NAME);
-            const data = await contract.evaluateTransaction("ClientUTXOs")
+            const data = await contract.evaluateTransaction('ClientUTXOs');
             return {
                 status: 200,
-                tokens: bufferToString(data) === "" ? [] : bufferToObject(data)
-            }
+                tokens: bufferToString(data) === '' ? [] : bufferToObject(data),
+            };
         } catch (e) {
             return {
                 status: 404,
-                message: "Request error: " + e.message,
-            }
+                message: 'Request error: ' + e.message,
+            };
         }
 
     }
 
-   async transferByKey(body) {
-        if (!body.hasOwnProperty('username') || !body.hasOwnProperty('recipient')) {
+    async transferByKey(body) {
+        if (!body.hasOwnProperty('userId') || !body.hasOwnProperty('recipientId')) {
             throw {
                 status: 404,
-                message: 'Request must contain username and recipient fields'
-            }
+                message: 'Request must contain userId and recipientId fields',
+            };
         }
-        const token = JSON.parse(body.token);
+        const token = body.token;
         if (Array.isArray(token) && token.length !== 0 && token.every(tokenId => this.validTokenId(tokenId))) {
             for (let tokenId of token) {
-                await this.tokenUtils.transferToken({...body, token: tokenId});
+                await this.tokenUtils.transferToken({ ...body, tokenId });
             }
         } else if (typeof token === 'string' && this.validTokenId(token)) {
-            await this.tokenUtils.transferToken(body);
+            await this.tokenUtils.transferToken({ ...body, tokenId: token });
         } else {
             throw {
                 status: 404,
-                message: 'Invalid token format'
+                message: 'Invalid token format',
             };
         }
     }
@@ -117,23 +149,23 @@ export class TokenService {
 
     async redeem(req) {
         try {
-            if (!req.body.hasOwnProperty('username') || !req.body.hasOwnProperty('token')) {
+            if (!req.body.hasOwnProperty('userId') || !req.body.hasOwnProperty('token')) {
                 throw {
                     status: 404,
-                    message: 'Request must contain username field'
-                }
+                    message: 'Request must contain userId field',
+                };
             } else {
-                await this.transferByKey({...req.body, recipient: process.env.GARBAGE});
+                await this.transferByKey({ ...req.body, recipientId: process.env.GARBAGE });
             }
             return {
                 status: 200,
-                message: "Token was successfully redeemed"
-            }
+                message: 'Token was successfully redeemed',
+            };
         } catch (e) {
             return {
                 status: e.status || 404,
-                message: "Request error: " + e.message,
-            }
+                message: 'Request error: ' + e.message,
+            };
         }
     }
 

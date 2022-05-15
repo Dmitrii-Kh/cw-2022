@@ -3,9 +3,9 @@ import { CreateEacDto } from './dto/create-eac.dto';
 import { UpdateEacDto } from './dto/update-eac.dto';
 
 @Injectable()
-export class EacService {
+export class EacMarketService {
   create(createEacDto: CreateEacDto) {
-    return 'This action adds a new eac';
+    return 'This action adds a new eac-market';
   }
 
   findAll() {
