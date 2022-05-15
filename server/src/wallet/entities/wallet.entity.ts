@@ -1,6 +1,7 @@
-import { PrimaryColumn, Column } from 'typeorm';
+import { BaseEntity, PrimaryColumn, Column, Entity } from 'typeorm';
 
-export class Wallet {
+@Entity()
+export class Wallet extends BaseEntity {
     @PrimaryColumn()
     userId: number;
 
