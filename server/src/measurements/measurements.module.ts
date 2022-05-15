@@ -9,6 +9,7 @@ import { MeasurementRepository } from './measurement.repository';
 @Module({
   imports: [StationModule, OrganisationModule, TypeOrmModule.forFeature([MeasurementRepository])],
   controllers: [MeasurementsController],
-  providers: [MeasurementsService]
+  providers: [MeasurementsService],
+  exports: [MeasurementsService]
 })
 export class MeasurementsModule {}

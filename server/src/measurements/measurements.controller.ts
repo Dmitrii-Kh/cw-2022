@@ -37,7 +37,7 @@ export class MeasurementsController {
         @Req() req,
     ): Promise<Measurement> {
         this.logger.verbose(`Retrieving Measurements from station ${station}, org ${organisation}`);
-        let userOrganisations = await this.organisationService.getAllOrganisations(req.body.userId);
+        let userOrganisations = await this.organisationService.getAllOrganisations(req.body.ownerId);
         let userStations = [];
         for (const org of userOrganisations) {
             for (const station of await org.stations) {
