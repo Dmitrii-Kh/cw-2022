@@ -1,4 +1,4 @@
-import {Controller, Get, Post, Body, Param, Delete, Req, Request} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Req, Request, Put } from '@nestjs/common';
 import { TokenService } from './token.service';
 import { CreateTokenDto } from './dto/create-token.dto';
 
@@ -16,13 +16,13 @@ export class TokenController {
     return this.tokenService.get(req);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tokenService.findOne(+id);
+  @Put()
+  transfer(@Req() req: Request) {
+    return this.tokenService.transferByKey(req.body);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tokenService.remove(+id);
+  @Delete()
+  redeem(@Req() req: Request) {
+    return this.tokenService.redeem(req);
   }
 }
