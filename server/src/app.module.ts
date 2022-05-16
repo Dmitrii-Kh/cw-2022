@@ -11,12 +11,6 @@ import { WalletModule } from './wallet/wallet.module';
 import { TokenModule } from './token/token.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
-import { Organisation } from './organisation/entities/organisation.entity';
-import { Station } from './station/entities/station.entity';
-import { Measurement } from './measurements/entities/measurement.entity';
-import { Wallet } from './wallet/entities/wallet.entity';
-import { Eac } from './eac-market/entities/eac.entity';
-import { User } from './user/entities/user.entity';
 import { AuthModule } from './auth/auth.module';
 
 @Module({

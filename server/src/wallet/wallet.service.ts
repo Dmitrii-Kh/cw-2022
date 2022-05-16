@@ -17,10 +17,12 @@ export class WalletService {
     ) {
     }
 
-    public async create(createWalletDto: CreateWalletDto): Promise<Wallet> {
+    public async create(createWalletDto): Promise<Wallet> {
         try {
-            let wallet = this.walletRepository.create(createWalletDto);
-            this.logger.verbose('Wallet created successfully: ', wallet);
+            // @ts-ignore
+            const wallet: Wallet = this.walletRepository.create(createWalletDto);
+            await wallet.save();
+            this.logger.verbose('Wallet created successfully: ', wallet.userId);
             return wallet;
         } catch (e) {
             this.logger.error(`Failed to create new wallet: `, e.stack);
