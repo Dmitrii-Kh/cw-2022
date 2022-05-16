@@ -59,11 +59,11 @@ export class OrganisationService {
         organisationInput: CreateOrganisationDto,
         userId: number,
     ): Promise<Organisation> {
+        let found = await this.organisationRepository.findOne({
+            where: { registryNumber: organisationInput.registryNumber },
+        });
+        if (found) throw new UnprocessableEntityException('Organisation already exists');
         try {
-            let found = await this.organisationRepository.findOne({
-                where: { registryNumber: organisationInput.registryNumber },
-            });
-            if (found) throw new UnprocessableEntityException('Organisation already exists');
             const organisation = this.organisationRepository.create(organisationInput);
             organisation.ownerId = userId;
             await organisation.save();
