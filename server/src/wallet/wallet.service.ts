@@ -1,4 +1,10 @@
-import { Injectable, InternalServerErrorException, Logger, UnprocessableEntityException } from '@nestjs/common';
+import {
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    UnprocessableEntityException,
+    UseGuards,
+} from '@nestjs/common';
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { UpdateWalletDto } from './dto/update-wallet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,7 +15,7 @@ import { UpdateResult } from 'typeorm';
 
 @Injectable()
 export class WalletService {
-    private logger = new Logger('StationService');
+    private logger = new Logger('WalletService');
 
     constructor(
         @InjectRepository(WalletRepository)
