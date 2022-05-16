@@ -7,29 +7,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post()
-  register(@Req() req: Request) { //todo DTO @Body() createUserDto: CreateUserDto
-    return this.userService.register(req);
-  }
-
   @Get()
   clientTokensAmount(@Req() req: Request) {
     return this.userService.clientTokensAmount(req);
-  }
-
-  // @Get()
-  // clientId(@Req() req: Request) {
-  //   return this.userService.clientId(req);
-  // }
-
-  // @Get()
-  // findAll() {
-  //   return this.userService.findAll();
-  // }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
   }
 
   @Patch(':id')

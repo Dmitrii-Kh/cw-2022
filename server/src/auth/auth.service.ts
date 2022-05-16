@@ -4,8 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { CaService } from '../utils/fabric/ca/ca.service';
 import { FabricWalletService } from '../utils/fabric/fabric-wallet.service';
-import { UserUtils } from '../utils/user/user.service';
-import { User } from '../user/entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -14,13 +13,13 @@ export class AuthService {
         private jwtService: JwtService,
         private ca: CaService,
         private fsw: FabricWalletService,
-        private userUtils: UserUtils,
     ) {
     }
 
     async validateUser(email: string, pass: string): Promise<any> {
         const user = await this.userService.getUserByEmail(email);
-        if (user && user.password === pass) {
+        const isMatch = bcrypt.compareSync(pass, user.password);
+        if (user && isMatch) {
             const { password, ...result } = user;
             return result;
         }
@@ -28,7 +27,7 @@ export class AuthService {
     }
 
     async login(user: any) {
-        const payload = { username: user.username, sub: user.userId };
+        const payload = { username: user.fullName, sub: user.id };
         return {
             access_token: this.jwtService.sign(payload),
         };
@@ -37,23 +36,20 @@ export class AuthService {
     async register(createUserDto: CreateUserDto) {
         try {
             const user = await this.userService.create(createUserDto);
-            if(!user) {
-                return {
-                    status: 400,
-                    message: "Request must contain a username"
-                }
-            }
             //todo fix affiliation
-            const registerResult = await this.ca.registerAndEnrollUser(this.fsw.getCaClient(), await this.fsw.getWallet(), process.env.MSP_ORG, user.id, process.env.AFFILICATION);
+            const registerResult = await this.ca.registerAndEnrollUser(
+                this.fsw.getCaClient(),
+                await this.fsw.getWallet(),
+                process.env.MSP_ORG, user.id.toString(), process.env.AFFILICATION);
             return {
                 status: 200,
-                message: { user, registerResult }
-            }
+                message: { user, registerResult },
+            };
         } catch (e) {
             return {
                 status: e.status,
                 message: e.message,
-            }
+            };
         }
     }
 

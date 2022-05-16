@@ -1,7 +1,8 @@
-import { Column, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { UserRole } from '../../utils/userRole';
 
-export class User {
+@Entity()
+export class User extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -13,9 +14,6 @@ export class User {
 
     @Column()
     password: string;
-
-    @Column()
-    salt: string;
 
     @Column()
     role: UserRole;

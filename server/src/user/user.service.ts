@@ -1,35 +1,80 @@
-import {Injectable} from '@nestjs/common';
-import {CreateUserDto} from './dto/create-user.dto';
-import {UpdateUserDto} from './dto/update-user.dto';
-import {CaService} from "../utils/fabric/ca/ca.service";
-import {UserUtils} from "../utils/user/user.service";
-import {FabricWalletService} from "../utils/fabric/fabric-wallet.service";
+import {
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    NotFoundException,
+    UnprocessableEntityException,
+} from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { CaService } from '../utils/fabric/ca/ca.service';
+import { UserUtils } from '../utils/user/user.service';
+import { FabricWalletService } from '../utils/fabric/fabric-wallet.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserRepository } from './user.repository';
+import { User } from './entities/user.entity';
+import { CreateWalletDto } from '../wallet/dto/create-wallet.dto';
+import { Wallet } from '../wallet/entities/wallet.entity';
+import * as bcrypt from 'bcrypt';
+import { WalletService } from '../wallet/wallet.service';
+import { FiatCurrencyEnum } from '../wallet/fiat-currency.enum';
 
 @Injectable()
 export class UserService {
+    private logger = new Logger('UserService');
+    private saltRounds = 8;
 
     constructor(
         private ca: CaService,
         private fsw: FabricWalletService,
         private userUtils: UserUtils,
+        private walletService: WalletService,
         @InjectRepository(UserRepository)
-        private userRepository: UserRepository
+        private userRepository: UserRepository,
     ) {
 
     }
 
-    create(createUserDto: CreateUserDto) {
-        return 'This action adds a new user';
+    public async create(createUserDto: CreateUserDto): Promise<User> {
+        const found = await this.userRepository.findOne({
+            where: { email: createUserDto.email },
+        });
+        if (found) throw new UnprocessableEntityException('User already exists');
+        try {
+            const salt = bcrypt.genSaltSync(this.saltRounds);
+            const password = bcrypt.hashSync(createUserDto.password, salt);
+            const user = await this.userRepository.create({ ...createUserDto, password });
+            await user.save();
+            await this.walletService.create({ userId: user.id, currency: FiatCurrencyEnum.USD, balance: 0 });
+            this.logger.verbose('User added successfully: ', user.id);
+            return user;
+        } catch (e) {
+            this.logger.error(`Failed to add new user: `, e.stack);
+            throw new InternalServerErrorException();
+        }
     }
 
     findAll() {
         return `This action returns all user`;
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} user`;
+
+    public async getUserByEmail(
+        email: string,
+    ): Promise<User> {
+        let found;
+        try {
+            found = await this.userRepository.findOne({
+                where: { email },
+            });
+        } catch (error) {
+            this.logger.error(`Failed to get user by email: ${email}: `, error.stack);
+            throw new InternalServerErrorException();
+        }
+        if (!found) {
+            throw new NotFoundException(`User with email: ${email} not found`);
+        }
+        return found;
     }
 
     update(id: number, updateUserDto: UpdateUserDto) {
@@ -40,46 +85,24 @@ export class UserService {
         return `This action removes a #${id} user`;
     }
 
-    async register(req) {
-        if (!req.body.hasOwnProperty('username')) {
-            return {
-                status: 400,
-                message: "Request must contain a username"
-            }
-        } else {
-            try {
-                const registerResult = await this.ca.registerAndEnrollUser(this.fsw.getCaClient(), await this.fsw.getWallet(), process.env.MSP_ORG, req.body.username, process.env.AFFILICATION);
-                return {
-                    status: 200,
-                    message: registerResult
-                }
-            } catch (e) {
-                return {
-                    status: e.status,
-                    message: e.message,
-                }
-            }
-        }
-    }
-
     async clientTokensAmount(req) {
         if (!req.query.hasOwnProperty('username')) {
             return {
                 status: 400,
-                message: "Request must contain a username"
-            }
+                message: 'Request must contain a username',
+            };
         } else {
             try {
-                const userTokensAmount = await this.userUtils.getUserTokensAmount(req.query.username)
+                const userTokensAmount = await this.userUtils.getUserTokensAmount(req.query.username);
                 return {
                     status: 200,
-                    amount: userTokensAmount
-                }
+                    amount: userTokensAmount,
+                };
             } catch (e) {
                 return {
                     status: 400,
-                    message: e.message
-                }
+                    message: e.message,
+                };
             }
         }
     }
@@ -88,20 +111,20 @@ export class UserService {
         if (!req.query.hasOwnProperty('username')) {
             return {
                 status: 400,
-                message: "Request must contain a username"
-            }
+                message: 'Request must contain a username',
+            };
         } else {
             try {
-                const clientId = await this.userUtils.getUserClientId(req.query.username)
+                const clientId = await this.userUtils.getUserClientId(req.query.username);
                 return {
                     status: 200,
-                    clientId
-                }
+                    clientId,
+                };
             } catch (e) {
                 return {
                     status: 400,
-                    message: e.message
-                }
+                    message: e.message,
+                };
             }
         }
     }
