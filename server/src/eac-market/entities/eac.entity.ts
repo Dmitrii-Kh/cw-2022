@@ -1,9 +1,9 @@
 import { BaseEntity, Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity()
-export class Eac extends BaseEntity {
+export class EAC extends BaseEntity {
     @PrimaryColumn()
-    userId: string;
+    userId: number;
 
     @PrimaryColumn()
     tokenId: string;

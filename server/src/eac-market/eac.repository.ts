@@ -1,5 +1,5 @@
 import { EntityRepository, Repository } from 'typeorm';
-import { Eac } from './entities/eac.entity';
+import { EAC } from './entities/eac.entity';
 
-@EntityRepository(Eac)
-export class EacRepository extends Repository<Eac> {}
+@EntityRepository(EAC)
+export class EacRepository extends Repository<EAC> {}
