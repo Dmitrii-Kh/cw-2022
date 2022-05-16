@@ -18,7 +18,7 @@ import { AuthModule } from './auth/auth.module';
         ConfigModule.forRoot({ isGlobal: true }),
         TypeOrmModule.forRoot(typeOrmConfig),
         OrganisationModule, StationModule, EacMarketModule, MeasurementsModule,
-        UserModule, WalletModule, TokenModule, AuthModule
+        WalletModule, UserModule, TokenModule, AuthModule
     ],
     controllers: [AppController],
     providers: [AppService],
