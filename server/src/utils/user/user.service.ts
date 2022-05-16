@@ -12,7 +12,7 @@ export class UserUtils {
     async getUserClientId(username) {
         await this.fws.getGateway().connect(this.fws.getCCP(), {
             wallet: await this.fws.getWallet(),
-            identity: username,
+            identity: username.toString(),
             discovery: {enabled: true, asLocalhost: true}
         });
         const network = await this.fws.getGateway().getNetwork(process.env.CHANNEL_NAME);

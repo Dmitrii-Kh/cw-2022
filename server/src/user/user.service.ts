@@ -13,8 +13,6 @@ import { FabricWalletService } from '../utils/fabric/fabric-wallet.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserRepository } from './user.repository';
 import { User } from './entities/user.entity';
-import { CreateWalletDto } from '../wallet/dto/create-wallet.dto';
-import { Wallet } from '../wallet/entities/wallet.entity';
 import * as bcrypt from 'bcrypt';
 import { WalletService } from '../wallet/wallet.service';
 import { FiatCurrencyEnum } from '../wallet/fiat-currency.enum';
@@ -107,21 +105,17 @@ export class UserService {
         }
     }
 
-    async clientId(req) {
-        if (!req.query.hasOwnProperty('username')) {
-            return {
+    async clientId(userId) {
+        if (!userId) {
+            throw {
                 status: 400,
-                message: 'Request must contain a username',
+                message: 'Request must contain a userId',
             };
         } else {
             try {
-                const clientId = await this.userUtils.getUserClientId(req.query.username);
-                return {
-                    status: 200,
-                    clientId,
-                };
+                return await this.userUtils.getUserClientId(userId);
             } catch (e) {
-                return {
+                throw {
                     status: 400,
                     message: e.message,
                 };
