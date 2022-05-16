@@ -1,24 +1,26 @@
-import { Controller, Get, Post, Body, Param, Delete, Req, Request, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Req, Request, Put, UseGuards } from '@nestjs/common';
 import { TokenService } from './token.service';
 import { CreateTokenDto } from './dto/create-token.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('token')
 export class TokenController {
   constructor(private readonly tokenService: TokenService) {}
 
   @Post()
-  create(@Body() createTokenDto: CreateTokenDto, @Req() req: Request) {
-    return this.tokenService.create(createTokenDto, req);
+  create(@Body() createTokenDto: CreateTokenDto, @Req() req) {
+    return this.tokenService.create(createTokenDto, req.user.id);
   }
 
   @Get()
-  findAll(@Req() req: Request) {
-    return this.tokenService.get(req);
+  findAll(@Req() req) {
+    return this.tokenService.getClientUTXOs(req.user.id);
   }
 
   @Put()
   transfer(@Req() req: Request) {
-    return this.tokenService.transferByKey(req.body);
+    return this.tokenService.transferByKeyAndAmount(req.body);
   }
 
   @Delete()

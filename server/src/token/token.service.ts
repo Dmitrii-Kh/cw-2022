@@ -21,9 +21,9 @@ export class TokenService {
 
     numberOfDecimalPoints = number => (number.toString().includes('.')) ? (number.toString().split('.').pop().length) : (0);
 
-    async create(createTokenDto: CreateTokenDto, req) {
+    async create(createTokenDto: CreateTokenDto, userId) {
         try {
-            const { userId, stationId } = createTokenDto;
+            const { stationId } = createTokenDto;
             const [organisation, name] = stationId.split('.');
             const station = await this.stationService.getStationById(+organisation, name, userId);
             const {
@@ -101,20 +101,17 @@ export class TokenService {
         return `This action removes a #${id} token`;
     }
 
-    async get(req) {
+    async getClientUTXOs(userId) {
         try {
             await this.fws.getGateway().connect(this.fws.getCCP(), {
                 wallet: await this.fws.getWallet(),
-                identity: req.query.userId,
+                identity: userId.toString(),
                 discovery: { enabled: true, asLocalhost: true },
             });
             const network = await this.fws.getGateway().getNetwork(process.env.CHANNEL_NAME);
             const contract = network.getContract(process.env.CHAINCODE_NAME);
             const data = await contract.evaluateTransaction('ClientUTXOs');
-            return {
-                status: 200,
-                tokens: bufferToString(data) === '' ? [] : bufferToObject(data),
-            };
+            return bufferToString(data) === '' ? [] : bufferToObject(data);
         } catch (e) {
             return {
                 status: 404,
@@ -146,6 +143,25 @@ export class TokenService {
         }
     }
 
+
+    public async transferByKeyAndAmount(body): Promise<any[]> {
+        if (!body.hasOwnProperty('userId') || !body.hasOwnProperty('recipientId')
+            || !body.hasOwnProperty('amount')) {
+            throw {
+                status: 404,
+                message: 'Request must contain userId, recipientId and amount fields',
+            };
+        }
+        const { token, amount } = body;
+        if (typeof token === 'string' && this.validTokenId(token)) {
+            return await this.tokenUtils.transferToken({ ...body, tokenId: token, transferAmount: amount });
+        } else {
+            throw {
+                status: 404,
+                message: 'Invalid token format',
+            };
+        }
+    }
 
     async redeem(req) {
         try {
