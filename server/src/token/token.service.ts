@@ -35,7 +35,7 @@ export class TokenService {
                 commissioningDate,
                 plantPerformance,
             } = station;
-            const measurementsArray = (await station.measurements).filter(m => m.minted === false);
+            const measurementsArray = (await station.measurements).filter(m => m.minted === false && m.generatedEnergy > 0);
             if (measurementsArray.length === 0) {
                 throw {
                     status: 404,
