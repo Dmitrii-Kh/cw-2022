@@ -36,7 +36,7 @@ export class EacMarketService {
     public async buyEac(buyerId, tokenOwnerId, tokenId, amount) {
         try {
             // 0. findOne token
-            const eacToBuy = await this.eacRepository.findOne(tokenId, tokenOwnerId);
+            const eacToBuy = await this.eacRepository.findOne({userId: tokenOwnerId, tokenId: tokenId});
             if (!eacToBuy) throw new NotFoundException('Eac not found');
             // 1. check balance of buyer
             const buyerBalance = await this.walletService.balance(buyerId);
@@ -58,9 +58,7 @@ export class EacMarketService {
                 token: tokenId,
                 amount,
             });
-            this.logger.verbose(`token transferred successfully`, newTokensArray);
-            const tokenOwnerPublicKey = await this.userService.clientId(tokenOwnerId);
-            const newTokenId = newTokensArray.find(token => token.owner === tokenOwnerPublicKey).utxo_key;
+            this.logger.verbose(`Token transferred successfully`, newTokensArray);
             // 4. deposit owner's balance
             await this.walletService.update(plainToInstance(UpdateWalletDto, {
                 userId: tokenOwnerId,
@@ -71,13 +69,15 @@ export class EacMarketService {
             if(token.amount === amount) {
                 await this.delete(tokenId, tokenOwnerId);
             } else {
+                const tokenOwnerPublicKey = await this.userService.clientId(tokenOwnerId);
+                const newTokenId = newTokensArray.find(token => token.owner === tokenOwnerPublicKey).utxo_key;
                 await this.update(tokenOwnerId, plainToInstance(UpdateEacDto, { oldTokenId: tokenId, tokenId: newTokenId }))
             }
             this.logger.verbose(`EAC purchased successfully`);
             return {
                 status: 200,
                 message: 'EAC purchased successfully',
-                new_token_id: newTokenId
+                new_tokens: JSON.stringify(newTokensArray)
             }
         } catch (e) {
             this.logger.error(`Failed to buy EAC ${tokenId}`, e);
