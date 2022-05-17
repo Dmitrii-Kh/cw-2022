@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { bufferToObject } from '../bufferEncode';
+import { bufferToObject, bufferToString } from '../bufferEncode';
 import { UserUtils } from '../user/user.service';
 import { FabricWalletService } from '../fabric/fabric-wallet.service';
+import { triggerAsyncId } from 'async_hooks';
 
 @Injectable()
 export class TokenUtils {
@@ -11,8 +12,7 @@ export class TokenUtils {
     ) {
     }
 
-    async transferToken({ userId, recipientId, tokenId }) {
-        console.log(recipientId);
+    async transferToken({ userId, recipientId, tokenId, transferAmount = 0 }): Promise<any[]> {
         const recipientKey = await this.userUtils.getUserClientId(recipientId.toString());
         await this.fsw.getGateway().connect(this.fsw.getCCP(), {
             wallet: await this.fsw.getWallet(),
@@ -23,17 +23,44 @@ export class TokenUtils {
         const contract = network.getContract(process.env.CHAINCODE_NAME);
         const userAllTokens = bufferToObject(await contract.evaluateTransaction('ClientUTXOs'));
         const tokenIndex = userAllTokens.findIndex(token => token.utxo_key === tokenId);
-        const userToken = userAllTokens[tokenIndex];
-        const userTokenKey = userToken.utxo_key;
-        const transferResult = [
-            {
+        const { utxo_key: userTokenKey, owner, amount: tokenAmount, EAC } = userAllTokens[tokenIndex];
+        let transferResult = [];
+        const amountLeft = tokenAmount - transferAmount;
+        if (amountLeft !== 0 && transferAmount !== 0) {
+            if (amountLeft < 0) {
+                throw {
+                    status: 400,
+                    message: 'Transfer amount exceeds token amount',
+                };
+            } else {
+                transferResult = [
+                    {
+                        Key: '',
+                        Owner: recipientKey,
+                        Amount: +transferAmount,
+                        EAC: EAC,
+                    },
+                    {
+                        Key: '',
+                        Owner: owner,
+                        Amount: (tokenAmount * 1000 - transferAmount * 1000) / 1000,
+                        EAC: EAC,
+                    },
+                ];
+            }
+        } else {
+            transferResult.push({
                 Key: '',
                 Owner: recipientKey,
-                Amount: userToken.amount,
-                EAC: userToken.EAC,
-            },
-        ];
-        await contract.submitTransaction('Transfer', JSON.stringify([userTokenKey]), JSON.stringify(transferResult));
+                Amount: tokenAmount,
+                EAC: EAC,
+            });
+        }
+        const data = await contract.submitTransaction(
+            'Transfer',
+            JSON.stringify([userTokenKey]),
+            JSON.stringify(transferResult));
+        return bufferToString(data) === '' ? [] : bufferToObject(data);
     }
 
 }

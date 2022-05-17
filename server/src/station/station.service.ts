@@ -24,28 +24,29 @@ export class StationService {
     ) {
     }
 
-    public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
-        let found = [];
+    public async getAllStations(ownerId: number): Promise<Station[]> {
+        let userOrganisations = await this.organisationService.getAllOrganisations(ownerId);
+        let stations = [];
         try {
-            for (const org of organisations) {
+            for (const org of userOrganisations) {
                 for (const station of await org.stations) {
-                    found.push(station);
+                    stations.push(station);
                 }
             }
         } catch (error) {
             this.logger.error(`Failed to get all stations: `, error.stack);
             throw new InternalServerErrorException();
         }
-        if (!found) {
+        if (!stations) {
             throw new NotFoundException(`Stations not found`);
         }
-        return found;
+        return stations;
     }
 
     public async getStationById(
         organisationRegistryNumber: number,
         name: string,
-        ownerId: number
+        ownerId: number,
     ): Promise<Station> {
         let found;
         try {
@@ -53,7 +54,7 @@ export class StationService {
             found = (await org.stations).find((station) => station.name === name);
         } catch (error) {
             this.logger.error(`Failed to get station ${name}: `, error.stack);
-            throw new InternalServerErrorException();
+            throw error || new InternalServerErrorException();
         }
         if (!found) {
             throw new NotFoundException(`Station with id: ${name} not found`);
@@ -85,8 +86,12 @@ export class StationService {
 
     public async createStation(
         stationInput: CreateStationDto,
-        organisation: Organisation,
+        ownerId: number,
     ): Promise<Station> {
+        const organisation = await this.organisationService.getOrganisationById(
+            stationInput.organisationRegistryNumber,
+            ownerId,
+        );
         let station = this.stationRepository.create(stationInput);
         try {
             station.organisation = Promise.resolve(organisation);
@@ -116,10 +121,12 @@ export class StationService {
     }
 
     public async deleteStation(
+        organisationRegistryNumber: number,
         name: string,
-        organisation: Organisation,
+        ownerId: number,
     ): Promise<void> {
         try {
+            let organisation = await this.organisationService.getOrganisationById(organisationRegistryNumber, ownerId);
             await this.stationRepository
                 .createQueryBuilder('station')
                 .delete()

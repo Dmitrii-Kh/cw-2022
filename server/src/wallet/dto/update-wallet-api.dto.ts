@@ -5,12 +5,7 @@ import { FiatCurrencyEnum } from '../fiat-currency.enum';
 import { Exclude, Expose } from 'class-transformer';
 
 @Exclude()
-export class UpdateWalletDto extends PartialType(CreateWalletDto) {
-    @IsNumber()
-    @IsNotEmpty({message: 'UserId is required'})
-    @Expose()
-    userId: number;
-
+export class UpdateWalletDtoApi extends PartialType(CreateWalletDto) {
     @IsString()
     @IsNotEmpty({message: 'Currency name is required'})
     @Expose()

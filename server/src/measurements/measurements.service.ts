@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Measurement } from './entities/measurement.entity';
 import { Organisation } from '../organisation/entities/organisation.entity';
 import { Station } from '../station/entities/station.entity';
+import { StationService } from '../station/station.service';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class MeasurementsService {
@@ -14,6 +16,7 @@ export class MeasurementsService {
     constructor(
         @InjectRepository(MeasurementRepository)
         private measurementRepository: MeasurementRepository,
+        private stationService: StationService
     ) {
     }
 
@@ -46,32 +49,15 @@ export class MeasurementsService {
     }
 
     public async getMeasurementsByOrgAndStation(
-        organisationRegistryNumber: string,
+        organisationRegistryNumber: number,
         stationName: string,
-        organisations: Organisation[],
-        stations: Station[],
+        ownerId: number
     ): Promise<Measurement> {
         const query = this.measurementRepository.createQueryBuilder('measurement');
         let found;
         try {
-            query.where(
-                ' measurement.stationName = :stationName AND' +
-                ' measurement.stationOrganisationRegistryNumber = :organisationRegistryNumber AND' +
-                ' measurement.stationName IN (:...userStationNames) AND' +
-                ' measurement.stationOrganisationRegistryNumber IN (:...userOrganisationRegistryNumbers) AND' +
-                ' measurement.minted = false',
-                {
-                    stationName: stationName,
-                    organisationRegistryNumber: organisationRegistryNumber,
-                    userStationNames: stations.reduce((acc, curr) => {
-                        return [...acc, curr.name];
-                    }, []),
-                    userOrganisationRegistryNumbers: organisations.reduce((acc, curr) => {
-                        return [...acc, curr.registryNumber];
-                    }, []),
-                },
-            );
-            found = await query.getMany();
+           let station = await this.stationService.getStationById(organisationRegistryNumber, stationName, ownerId);
+           found = await station.measurements;
         } catch (error) {
             this.logger.error(
                 `Failed to get measurements from station ${stationName}, org ${organisationRegistryNumber} `,

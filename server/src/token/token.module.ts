@@ -9,6 +9,7 @@ import { StationModule } from '../station/station.module';
 @Module({
   controllers: [TokenController],
   imports: [FabricModule, TokenUtilsModule, StationModule, MeasurementsModule],
-  providers: [TokenService]
+  providers: [TokenService],
+  exports: [TokenService]
 })
 export class TokenModule {}

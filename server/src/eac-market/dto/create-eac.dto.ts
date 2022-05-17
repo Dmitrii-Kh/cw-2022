@@ -1,9 +1,10 @@
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateEacDto {
-    @IsNumber()
-    @IsNotEmpty({ message: 'User ID is required' })
-    userId: number;
+    // retrieved from db
+    // @IsNumber()
+    // @IsNotEmpty({ message: 'User ID is required' })
+    // userId: number;
 
     @IsString()
     @IsNotEmpty({ message: 'Token ID is required' })

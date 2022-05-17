@@ -1,4 +1,7 @@
+import { IsNotEmpty, IsString } from 'class-validator';
+
 export class CreateTokenDto {
-    userId: number;
+    @IsString()
+    @IsNotEmpty({ message: 'Station ID is required' })
     stationId: string;
 }
