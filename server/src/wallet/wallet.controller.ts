@@ -18,22 +18,28 @@ export class WalletController {
         return this.walletService.create(createWalletDto);
     }
 
-    @Get()
-    findAll() {
-        return this.walletService.findAll();
-    }
+    // @Get()
+    // findAll() {
+    //     return this.walletService.findAll();
+    // }
 
-    @Get(':userId')
-    findOne(@Param('userId') userId: string) {
-        return this.walletService.balance(+userId);
+    @Get()
+    async findOne(@Req() req) {
+        const balance = await this.walletService.balance(req.user.id);
+        return {
+            balance: balance,
+            currency: FiatCurrencyEnum.USD
+        };
     }
 
     @Patch()
     update(@Body() updateWalletDto: UpdateWalletDtoApi, @Req() req) {
+        console.log(updateWalletDto.amount);
         return this.walletService.update(plainToInstance(UpdateWalletDto, {
             userId: req.user.id,
-            currency: updateWalletDto.currency,
-            amount: updateWalletDto.amount,
+            currency: updateWalletDto.currency || FiatCurrencyEnum.USD,
+            amount: +updateWalletDto.amount,
+            balance: 0
         }));
     }
 
