@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import axios from 'axios';
@@ -49,6 +49,7 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.setGlobalPrefix('api/v1');
     app.use(cookieParser());
+    app.useGlobalPipes(new ValidationPipe());
 
     //todo cors config
     // app.enableCors({

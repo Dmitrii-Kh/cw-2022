@@ -27,7 +27,7 @@ export class AuthService {
     }
 
     async login(user: any) {
-        const payload = { username: user.fullName, sub: user.id };
+        const payload = { username: user.fullName, sub: user.id, role: user.role };
         return {
             access_token: this.jwtService.sign(payload),
         };
@@ -36,11 +36,10 @@ export class AuthService {
     async register(createUserDto: CreateUserDto) {
         try {
             const user = await this.userService.create(createUserDto);
-            //todo fix affiliation
             const registerResult = await this.ca.registerAndEnrollUser(
                 this.fsw.getCaClient(),
                 await this.fsw.getWallet(),
-                process.env.MSP_ORG, user.id.toString(), process.env.AFFILICATION);
+                process.env.MSP_ORG, user.id.toString(), process.env.AFFILIATION);
             return {
                 status: 200,
                 message: { user, registerResult },

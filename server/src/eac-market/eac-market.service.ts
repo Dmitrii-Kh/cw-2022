@@ -13,8 +13,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EacRepository } from './eac.repository';
 import { TokenService } from '../token/token.service';
 import { WalletService } from '../wallet/wallet.service';
-import { Measurement } from '../measurements/entities/measurement.entity';
-import { userInfo } from 'os';
 import { plainToInstance } from 'class-transformer';
 import { UpdateWalletDto } from '../wallet/dto/update-wallet.dto';
 import { FiatCurrencyEnum } from '../wallet/fiat-currency.enum';
@@ -86,6 +84,7 @@ export class EacMarketService {
     }
 
     public async sellEac(userId: number, createEacDto: CreateEacDto): Promise<EAC> {
+        let eac;
         const { tokenId } = createEacDto;
         let found = await this.eacRepository.findOne({
             where: { userId, tokenId },
@@ -94,7 +93,7 @@ export class EacMarketService {
         let token = (await this.tokenService.getClientUTXOs(userId)).find(token => token.utxo_key === tokenId);
         if (!token) throw new NotFoundException('Token not found');
         try {
-            const eac = this.eacRepository.create({ ...createEacDto, userId });
+            eac = this.eacRepository.create({ ...createEacDto, userId });
             await eac.save();
             return eac;
         } catch (error) {

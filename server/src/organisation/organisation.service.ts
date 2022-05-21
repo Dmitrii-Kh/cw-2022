@@ -9,6 +9,8 @@ import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrganisationRepository } from './organisation.repository';
 import { Organisation } from './entities/organisation.entity';
+import { UserService } from '../user/user.service';
+import { use } from 'passport';
 
 @Injectable()
 export class OrganisationService {
@@ -17,15 +19,15 @@ export class OrganisationService {
     constructor(
         @InjectRepository(OrganisationRepository)
         private organisationRepository: OrganisationRepository,
+        private userService: UserService
     ) {
     }
 
     public async getAllOrganisations(userId: number): Promise<Organisation[]> {
-        const query = this.organisationRepository.createQueryBuilder('organisation');
         let found;
+        const user = await this.userService.getUserById(userId);
         try {
-            query.where('organisation.ownerId = :userId', { userId: userId });
-            found = await query.getMany();
+            found = await user.organisations;
         } catch (error) {
             this.logger.error(`Failed to get all stations: `, error.stack);
             throw new InternalServerErrorException();
@@ -59,19 +61,20 @@ export class OrganisationService {
         organisationInput: CreateOrganisationDto,
         userId: number,
     ): Promise<Organisation> {
+        let organisation;
         let found = await this.organisationRepository.findOne({
             where: { registryNumber: organisationInput.registryNumber },
         });
         if (found) throw new UnprocessableEntityException('Organisation already exists');
         try {
-            const organisation = this.organisationRepository.create(organisationInput);
+            organisation = this.organisationRepository.create(organisationInput);
             organisation.ownerId = userId;
             await organisation.save();
-            return organisation;
         } catch (error) {
             this.logger.error(`Failed to create organisation ${organisationInput.registryNumber}`, error);
             throw new InternalServerErrorException('Organisation creation failed');
         }
+        return organisation;
     }
 
     public async deleteOrganisation(registryNumber: number, userId: number): Promise<void> {

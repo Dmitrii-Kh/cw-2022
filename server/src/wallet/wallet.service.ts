@@ -36,7 +36,7 @@ export class WalletService {
         }
     }
 
-    public async balance(userId: number, currency: FiatCurrencyEnum = FiatCurrencyEnum.USD): Promise<number> {
+    public async balance(userId: number, currency: FiatCurrencyEnum = FiatCurrencyEnum.USD): Promise<Number> {
         try {
             let wallet = await this.walletRepository.findOne({
                 where: { userId, currency },
