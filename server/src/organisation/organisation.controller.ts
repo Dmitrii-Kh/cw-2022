@@ -3,8 +3,11 @@ import { OrganisationService } from './organisation.service';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { Organisation } from './entities/organisation.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '../utils/userRole';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('organisation')
 export class OrganisationController {
     private logger = new Logger('OrganisationController');
@@ -12,11 +15,13 @@ export class OrganisationController {
     constructor(private readonly organisationService: OrganisationService) {}
 
     @Get()
+    @Roles(UserRole.OrganisationOwner)
     getAllOrganisations(@Req() req): Promise<Organisation[]> {
         return this.organisationService.getAllOrganisations(req.user.id);
     }
 
     @Get(':id')
+    @Roles(UserRole.OrganisationOwner)
     getOrganisationById(
         @Param('id') registryNumber: number,
         @Req() req,
@@ -26,6 +31,7 @@ export class OrganisationController {
     }
 
     @Post()
+    @Roles(UserRole.OrganisationOwner)
     createOrganisation(
         @Body(ValidationPipe) createOrganisationDto: CreateOrganisationDto,
         @Req() req,
@@ -37,6 +43,7 @@ export class OrganisationController {
     }
 
     @Delete(':id')
+    @Roles(UserRole.OrganisationOwner)
     deleteOrganisation(@Param('id') registryNumber: number, @Req() req): Promise<void> {
         return this.organisationService.deleteOrganisation(registryNumber, req.user.id);
     }
