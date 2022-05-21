@@ -5,6 +5,7 @@ import { bufferToString, bufferToObject } from '../utils/bufferEncode';
 import { TokenUtils } from '../utils/token/token.service';
 import { StationService } from '../station/station.service';
 import { MeasurementsService } from '../measurements/measurements.service';
+import { getContractForUser } from '../utils/get-contract';
 
 @Injectable()
 export class TokenService {
@@ -35,7 +36,9 @@ export class TokenService {
                 commissioningDate,
                 plantPerformance,
             } = station;
-            const measurementsArray = (await station.measurements).filter(m => m.minted === false && m.generatedEnergy > 0);
+            const measurementsArray = (await station.measurements).filter(
+                m => m.minted === false && m.generatedEnergy > 0
+            );
             if (measurementsArray.length === 0) {
                 throw {
                     status: 404,
@@ -64,13 +67,7 @@ export class TokenService {
             };
 
             const totalAmount = generatedEnergy * 10 / 10000;
-            await this.fws.getGateway().connect(this.fws.getCCP(), {
-                wallet: await this.fws.getWallet(),
-                identity: userId + '',
-                discovery: { enabled: true, asLocalhost: true },
-            });
-            const network = await this.fws.getGateway().getNetwork(process.env.CHANNEL_NAME);
-            const contract = network.getContract(process.env.CHAINCODE_NAME);
+            const contract = await getContractForUser(this.fws, userId);
             await contract.submitTransaction('Mint', String(totalAmount),
                 JSON.stringify(EAC));
             for (const m of measurementsArray) {
@@ -103,13 +100,7 @@ export class TokenService {
 
     async getClientUTXOs(userId) {
         try {
-            await this.fws.getGateway().connect(this.fws.getCCP(), {
-                wallet: await this.fws.getWallet(),
-                identity: userId.toString(),
-                discovery: { enabled: true, asLocalhost: true },
-            });
-            const network = await this.fws.getGateway().getNetwork(process.env.CHANNEL_NAME);
-            const contract = network.getContract(process.env.CHAINCODE_NAME);
+            const contract = await getContractForUser(this.fws, userId);
             const data = await contract.evaluateTransaction('ClientUTXOs');
             return bufferToString(data) === '' ? [] : bufferToObject(data);
         } catch (e) {
