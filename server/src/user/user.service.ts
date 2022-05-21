@@ -34,6 +34,7 @@ export class UserService {
     }
 
     public async create(createUserDto: CreateUserDto): Promise<User> {
+        let user;
         const found = await this.userRepository.findOne({
             where: { email: createUserDto.email },
         });
@@ -41,15 +42,15 @@ export class UserService {
         try {
             const salt = bcrypt.genSaltSync(this.saltRounds);
             const password = bcrypt.hashSync(createUserDto.password, salt);
-            const user = await this.userRepository.create({ ...createUserDto, password });
+            user = await this.userRepository.create({ ...createUserDto, password });
             await user.save();
             await this.walletService.create({ userId: user.id, currency: FiatCurrencyEnum.USD, balance: 0 });
             this.logger.verbose('User added successfully: ', user.id);
-            return user;
         } catch (e) {
             this.logger.error(`Failed to add new user: `, e.stack);
             throw new InternalServerErrorException();
         }
+        return user;
     }
 
     findAll() {
@@ -71,6 +72,24 @@ export class UserService {
         }
         if (!found) {
             throw new NotFoundException(`User with email: ${email} not found`);
+        }
+        return found;
+    }
+
+    public async getUserById(
+        id: number,
+    ): Promise<User> {
+        let found;
+        try {
+            found = await this.userRepository.findOne({
+                where: { id },
+            });
+        } catch (error) {
+            this.logger.error(`Failed to get user by id: ${id}: `, error.stack);
+            throw new InternalServerErrorException();
+        }
+        if (!found) {
+            throw new NotFoundException(`User with email: ${id} not found`);
         }
         return found;
     }
