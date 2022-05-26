@@ -1,6 +1,14 @@
 # cw-2022
 Platform for accounting, selling and redeeming EACs (Energy Attribute Certificates) implemented with the extended UTXO model. HLF/Fiware Orion Context Broker adapter.
 
+## Solution Architecture
+
+![](../../Downloads/CW2022-Page-1.drawio.png)
+
+## Flow
+
+![](../../Downloads/CW2022-Page-2.drawio.png)
+
 ## Getting started
 
 ### Reguirements:
