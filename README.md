@@ -5,7 +5,7 @@ Platform for accounting, selling and redeeming EACs (Energy Attribute Certificat
 
 ![Solution Architecture](https://user-images.githubusercontent.com/41952304/170490624-db103acd-0b04-49fb-a244-fd00ef951bba.png)
 
-## Flow
+## User Flow
 
 ![User Flow](https://user-images.githubusercontent.com/41952304/170490669-06a3be7e-8147-4cc8-9178-998f5a456005.png)
 
